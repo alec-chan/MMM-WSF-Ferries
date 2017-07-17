@@ -12,6 +12,7 @@
     "grunt-markdownlint": "^1.0.13",
     "grunt-stylelint": "latest",
     "grunt-yamllint": "latest",
+    "moment": "^2.18.1",
     "stylelint-config-standard": "latest",
     "time-grunt": "latest"
   }

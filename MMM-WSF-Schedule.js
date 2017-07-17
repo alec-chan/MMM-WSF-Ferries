@@ -6,8 +6,10 @@
  * By 
  * MIT Licensed.
  */
+var moment = require('moment');
 
 Module.register("MMM-WSF-Ferries", {
+	routes: {},
 	defaults: {
 		updateInterval: 60000,
 		retryDelay: 5000
@@ -32,18 +34,23 @@ Module.register("MMM-WSF-Ferries", {
 
 	/*
 	 * getData
-	 * function example return data and show it in the module wrapper
-	 * get a URL request
+	 * Updates all view data from API
 	 *
 	 */
 	getData: function() {
 		var self = this;
 
-		var urlApi = "https://jsonplaceholder.typicode.com/posts/1";
+		var baseApi = "http://www.wsdot.wa.gov/Ferries/API/Schedule/rest";
+		var apiKey = this.config.apiKey || "2f42a976-22b1-426e-83bb-79f71f4e7d09";
 		var retry = true;
+		var routeID = 5 || this.config.myRouteID;
+		var todaysSchedule = baseAPI+"/scheduletoday/"+routeID+"/true?apiaccesscode="+apiKey;
+
+		var date = new Date();
+		var formattedDate = moment(date).format('YYYY-MM-DD');
 
 		var dataRequest = new XMLHttpRequest();
-		dataRequest.open("GET", urlApi, true);
+		dataRequest.open("GET", todaysSchedule, true);
 		dataRequest.onreadystatechange = function() {
 			console.log(this.readyState);
 			if (this.readyState === 4) {
@@ -93,16 +100,26 @@ Module.register("MMM-WSF-Ferries", {
 		if (this.dataRequest) {
 			var wrapperDataRequest = document.createElement("div");
 			// check format https://jsonplaceholder.typicode.com/posts/1
-			wrapperDataRequest.innerHTML = this.dataRequest.title;
+			wrapperDataRequest.innerHTML = this.dataRequest.ScheduleName;
 
-			var labelDataRequest = document.createElement("label");
-			// Use translate function
-			//             this id defined in translations files
-			labelDataRequest.innerHTML = this.translate("TITLE");
+			var table = document.createElement("table");
+			
+			var titleRow = document.createElement("tr");
+			var tableTitles = "<th>"+this.dataRequest.TerminalCombos[1].DepartingTerminalName+"</th><th>"+this.dataRequest.TerminalCombos[1].ArrivingTerminalName+"</th>";
+			titleRow.innerHTML = tableTitles;
 
+			table.appendChild(titleRow);
 
-			wrapper.appendChild(labelDataRequest);
+			for(var i in this.dataRequest.TerminalCombos[1].Times){
+				var timeRow = document.createElement("tr");
+				var time = document.createElement("th");
+				time.innerText = this.dataRequest.TerminalCombos[1].Times[i].DepartingTime;
+				timeRow.appendChild(time);
+				table.appendChild(timeRow);
+			}
+			
 			wrapper.appendChild(wrapperDataRequest);
+			wrapper.appendChild(table);
 		}
 
 		// Data from helper
