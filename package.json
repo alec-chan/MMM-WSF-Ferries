@@ -1,0 +1,18 @@
+{
+  "name": "MMM-WSF-Schedule",
+  "version": "1.0.0",
+  "description": "A MagicMirror 2 module that fetches and displays schedule info for Washington State Ferries.",
+  "main": "MMM-WSF-Schedule.js",
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "grunt": "latest",
+    "grunt-eslint": "latest",
+    "grunt-jsonlint": "latest",
+    "grunt-markdownlint": "^1.0.13",
+    "grunt-stylelint": "latest",
+    "grunt-yamllint": "latest",
+    "stylelint-config-standard": "latest",
+    "time-grunt": "latest"
+  }
+}
