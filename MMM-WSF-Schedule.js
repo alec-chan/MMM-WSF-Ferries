@@ -6,10 +6,11 @@
  * By 
  * MIT Licensed.
  */
-var moment = require('moment');
+var moment = require("moment");
 
 Module.register("MMM-WSF-Ferries", {
-	routes: {},
+	WSFData: {},
+
 	defaults: {
 		updateInterval: 60000,
 		retryDelay: 5000
@@ -17,6 +18,12 @@ Module.register("MMM-WSF-Ferries", {
 
 	requiresVersion: "2.1.0", // Required version of MagicMirror
 
+
+	/*
+	 * start()
+	 * Initializer function
+	 *
+	 */
 	start: function() {
 		var self = this;
 		var dataRequest = null;
@@ -30,46 +37,28 @@ Module.register("MMM-WSF-Ferries", {
 		setInterval(function() {
 			self.updateDom();
 		}, this.config.updateInterval);
+
 	},
 
 	/*
 	 * getData
-	 * Updates all view data from API
+	 * Pulls in all data to our WSFData object from the various API endpoints
 	 *
 	 */
 	getData: function() {
 		var self = this;
 
-		var baseApi = "http://www.wsdot.wa.gov/Ferries/API/Schedule/rest";
-		var apiKey = this.config.apiKey || "2f42a976-22b1-426e-83bb-79f71f4e7d09";
-		var retry = true;
-		var routeID = 5 || this.config.myRouteID;
-		var todaysSchedule = baseAPI+"/scheduletoday/"+routeID+"/true?apiaccesscode="+apiKey;
+		self.getScheduleTimes();
+	},
 
+	/*
+	 * getDate()
+	 * In case in the future we need a formatted date.
+	 *
+	 */
+	getDate: function(){
 		var date = new Date();
-		var formattedDate = moment(date).format('YYYY-MM-DD');
-
-		var dataRequest = new XMLHttpRequest();
-		dataRequest.open("GET", todaysSchedule, true);
-		dataRequest.onreadystatechange = function() {
-			console.log(this.readyState);
-			if (this.readyState === 4) {
-				console.log(this.status);
-				if (this.status === 200) {
-					self.processData(JSON.parse(this.response));
-				} else if (this.status === 401) {
-					self.updateDom(self.config.animationSpeed);
-					Log.error(self.name, this.status);
-					retry = false;
-				} else {
-					Log.error(self.name, "Could not load data.");
-				}
-				if (retry) {
-					self.scheduleUpdate((self.loaded) ? -1 : self.config.retryDelay);
-				}
-			}
-		};
-		dataRequest.send();
+		return moment(date).format("YYYY-MM-DD");
 	},
 
 
@@ -97,28 +86,25 @@ Module.register("MMM-WSF-Ferries", {
 		// create element wrapper for show into the module
 		var wrapper = document.createElement("div");
 		// If this.dataRequest is not empty
-		if (this.dataRequest) {
-			var wrapperDataRequest = document.createElement("div");
+		if (this.WSFData) {
 			// check format https://jsonplaceholder.typicode.com/posts/1
-			wrapperDataRequest.innerHTML = this.dataRequest.ScheduleName;
 
 			var table = document.createElement("table");
-			
+
 			var titleRow = document.createElement("tr");
-			var tableTitles = "<th>"+this.dataRequest.TerminalCombos[1].DepartingTerminalName+"</th><th>"+this.dataRequest.TerminalCombos[1].ArrivingTerminalName+"</th>";
+			var tableTitles = "<th>"+this.WSFData.myTerminalCombo.DepartingTerminalName+" -> "+this.WSFData.myTerminalCombo.ArrivingTerminalName+"</th>";
 			titleRow.innerHTML = tableTitles;
 
 			table.appendChild(titleRow);
 
 			for(var i in this.dataRequest.TerminalCombos[1].Times){
 				var timeRow = document.createElement("tr");
-				var time = document.createElement("th");
-				time.innerText = this.dataRequest.TerminalCombos[1].Times[i].DepartingTime;
+				var time = document.createElement("td");
+				time.innerText = this.WSFData.myTerminalCombo.Times[i].DepartingTime;
 				timeRow.appendChild(time);
 				table.appendChild(timeRow);
 			}
-			
-			wrapper.appendChild(wrapperDataRequest);
+
 			wrapper.appendChild(table);
 		}
 
@@ -165,4 +151,36 @@ Module.register("MMM-WSF-Ferries", {
 			this.updateDom();
 		}
 	},
+
+	getScheduleTimes: function(){
+		var API = "http://www.wsdot.wa.gov/Ferries/API/Schedule/rest/scheduletoday/"+this.config.departingTerminalID+"/"+this.config.arrivingTerminalID+"/true?apiaccesscode="+this.config.apiKey;
+		var schedUpdate = new XMLHttpRequest();
+		schedUpdate.open("GET", API, true);
+		schedUpdate.onreadystatechange = function() {
+			console.log(this.readyState);
+			if (this.readyState === 4) {
+				console.log(this.status);
+				if (this.status === 200) {
+					// this specific API endpoint returns an array of objects so we filter 
+					// them for the one containing our routeID
+					var schedRes = JSON.parse(this.response);
+					var myTerminalCombo = schedRes.filter(function ( obj ) {
+						return (obj.DepartingTerminalID === this.config.myDepartingTerminalID && obj.ArrivingTerminalID === this.config.myDepartingTerminalID);
+					})[0];
+
+					WSFData.scheduleToday = myTerminalCombo;
+
+				} else if (this.status === 401) {
+					retry = false;
+				} else {
+					Log.error(self.name, "Could not load data.");
+				}
+				if (retry) {
+					self.scheduleUpdate((self.loaded) ? -1 : self.config.retryDelay);
+				}
+			}
+		};
+		schedUpdate.send();
+	}
+
 });
