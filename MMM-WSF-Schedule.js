@@ -97,11 +97,12 @@ Module.register("MMM-WSF-Ferries", {
 
 			table.appendChild(titleRow);
 
-			for(var i in this.dataRequest.TerminalCombos[1].Times){
+			for(var i in this.WSFData.myTerminalCombo.Times){
 				var timeRow = document.createElement("tr");
 				var time = document.createElement("td");
 				time.innerText = this.WSFData.myTerminalCombo.Times[i].DepartingTime;
 				timeRow.appendChild(time);
+				var 
 				table.appendChild(timeRow);
 			}
 
